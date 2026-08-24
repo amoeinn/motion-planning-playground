@@ -109,3 +109,21 @@ def _reconstruct_path(came_from: Dict[Cell, Cell], goal: Cell) -> List[Cell]:
         path.append(came_from[path[-1]])
     path.reverse()
     return path
+
+
+def zero_heuristic(a: Cell, b: Cell) -> float:
+    """Return 0 regardless of inputs. Used to reduce A* to Dijkstra."""
+    return 0.0
+
+
+def dijkstra(world: GridWorld) -> AStarResult:
+    """Find the shortest path from world.start to world.goal using Dijkstra.
+
+    Dijkstra is exactly A* with a zero heuristic: it explores by g-score only,
+    with no bias toward the goal. This produces a uniform-cost search that
+    expands outward from start in all directions until the goal is popped.
+
+    Result is optimal (Dijkstra is the classic optimal shortest-path algorithm)
+    but explores strictly more cells than A* with an informative heuristic.
+    """
+    return astar(world, heuristic=zero_heuristic)
