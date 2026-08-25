@@ -4,13 +4,13 @@ Interactive visualizations of 2D motion planning algorithms. Explore how A*, Dij
 
 ![A* vs Dijkstra comparison](docs/comparison.png)
 
-Both algorithms find the optimal 27-step path around the wall, but A* explores 157 cells while Dijkstra explores 249. The heuristic doesn't change what A* finds, it changes how efficiently it finds it.
+All three planners find a 27-step path around the wall. A* explores 157 cells using its heuristic to focus toward the goal. Dijkstra explores 249 cells with no heuristic. RRT builds a random tree of 111 nodes in 181 iterations, biased 5% toward the goal.
 
 ## Algorithms
 
 - **A***: grid-based optimal shortest path with heuristic guidance (implemented)
 - **Dijkstra**: uniform-cost graph search, implemented as A* with a zero heuristic (implemented)
-- **RRT**: sampling-based tree exploration for continuous spaces (planned)
+- **RRT**: sampling-based tree exploration for continuous spaces (implemented)
 - **RRT***: asymptotically optimal variant with rewiring (planned)
 
 ## Requirements
@@ -33,10 +33,16 @@ Run A* on the default wall world:
 python examples/run_astar_demo.py
 ```
 
-Compare A* against Dijkstra on the same world:
+Compare A*, Dijkstra, and RRT on the same world:
 
 ```bash
 python examples/run_comparison_demo.py
+```
+
+Run RRT alone on the wall world:
+
+```bash
+python examples/run_rrt_demo.py
 ```
 
 Regenerate the README image:
