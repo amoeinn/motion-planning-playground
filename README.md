@@ -47,7 +47,7 @@ python examples/generate_readme_image.py
 
 ## Structure
 
-```
+```text
 src/
   grid_world.py       2D grid environment with obstacles, start, goal
   astar.py            A* and Dijkstra implementations
