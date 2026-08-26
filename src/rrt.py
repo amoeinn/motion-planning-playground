@@ -139,3 +139,131 @@ def _reconstruct_path(parent: Dict[Cell, Cell], goal: Cell) -> List[Cell]:
         path.append(parent[path[-1]])
     path.reverse()
     return path
+
+def rrt_star(
+    world: GridWorld,
+    step_size: int = 1,
+    goal_bias: float = 0.05,
+    rewire_radius: int = 3,
+    max_iterations: int = 5000,
+    seed: Optional[int] = None,
+) -> RRTResult:
+    """Find an increasingly optimal path using RRT*.
+
+    RRT* extends RRT with two additions:
+      1. When adding a new node, choose the parent that gives the lowest
+         cost-to-reach (not just the nearest node).
+      2. After adding a new node, rewire nearby nodes if going through the
+         new node gives them a shorter path from start.
+
+    Together, these make RRT* asymptotically optimal: with enough samples,
+    the tree converges toward the true shortest path.
+
+    Args:
+        world: the grid environment.
+        step_size: how many cells to extend per iteration (default 1).
+        goal_bias: probability of sampling the goal directly (default 0.05).
+        rewire_radius: cells within this distance are candidates for rewiring
+            and for alternative parent selection (default 3).
+        max_iterations: give up after this many iterations if goal not reached.
+        seed: random seed for reproducibility. None uses system entropy.
+
+    Returns:
+        RRTResult with the best path found so far, tree, and iteration count.
+    """
+    world.validate()
+    rng = Random(seed)
+
+    parent: Dict[Cell, Cell] = {}
+    costs: Dict[Cell, float] = {world.start: 0.0}
+    nodes: List[Cell] = [world.start]
+    tree_edges: List[Tuple[Cell, Cell]] = []
+    goal_reached_at: Optional[int] = None
+
+    for iteration in range(1, max_iterations + 1):
+        # Sample
+        if rng.random() < goal_bias:
+            sample = world.goal
+        else:
+            sample = (rng.randint(0, world.rows - 1), rng.randint(0, world.cols - 1))
+
+        # Find nearest node in tree
+        nearest = _nearest_node(nodes, sample)
+
+        # Steer toward sample
+        new_node = _steer(nearest, sample, step_size)
+
+        # Skip invalid new nodes
+        if not world.is_free(new_node):
+            continue
+        if new_node in parent or new_node == world.start:
+            continue
+
+        # Find all nearby nodes as parent candidates
+        neighbors = _nodes_within_radius(nodes, new_node, rewire_radius)
+
+        # Choose parent: candidate must be one step away from new_node,
+        # otherwise the edge would jump over cells that aren't in the tree.
+        best_parent = nearest
+        best_cost = costs[nearest] + _manhattan(nearest, new_node)
+        for candidate in neighbors:
+            if candidate == new_node:
+                continue
+            if _manhattan(candidate, new_node) != step_size:
+                continue
+            candidate_cost = costs[candidate] + step_size
+            if candidate_cost < best_cost:
+                best_parent = candidate
+                best_cost = candidate_cost
+
+        # Add new node with chosen parent
+        parent[new_node] = best_parent
+        costs[new_node] = best_cost
+        nodes.append(new_node)
+        tree_edges.append((best_parent, new_node))
+        
+        # Rewire: candidate must be one step away from new_node.
+        for candidate in neighbors:
+            if candidate == new_node or candidate == world.start:
+                continue
+            if _manhattan(new_node, candidate) != step_size:
+                continue
+            new_cost_via_new_node = costs[new_node] + step_size
+            if new_cost_via_new_node < costs[candidate]:
+                # Update parent, remove old edge, add new edge
+                old_parent = parent[candidate]
+                parent[candidate] = new_node
+                costs[candidate] = new_cost_via_new_node
+                tree_edges.remove((old_parent, candidate))
+                tree_edges.append((new_node, candidate))
+
+        # Check if we reached the goal
+        if new_node == world.goal and goal_reached_at is None:
+            goal_reached_at = iteration
+
+    # After all iterations, reconstruct path if goal was reached
+    if world.goal in parent or world.goal == world.start:
+        path = _reconstruct_path(parent, world.goal)
+        return RRTResult(
+            path=path,
+            explored=set(nodes),
+            tree_edges=tree_edges,
+            iterations_used=max_iterations,
+        )
+
+    return RRTResult(
+        path=None,
+        explored=set(nodes),
+        tree_edges=tree_edges,
+        iterations_used=max_iterations,
+    )
+
+
+def _nodes_within_radius(nodes: List[Cell], center: Cell, radius: int) -> List[Cell]:
+    """Return all nodes within Manhattan distance <= radius of center."""
+    return [n for n in nodes if _manhattan(n, center) <= radius]
+
+
+def _manhattan(a: Cell, b: Cell) -> float:
+    """Manhattan distance between two cells."""
+    return abs(a[0] - b[0]) + abs(a[1] - b[1])
