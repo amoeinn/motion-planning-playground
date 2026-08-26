@@ -1,8 +1,12 @@
-"""Compare A*, Dijkstra, and RRT on the same world, side by side.
+"""Compare A*, Dijkstra, RRT, and RRT* on the same world, side by side.
 
-Renders three plots showing how each algorithm explored the space.
-A* and Dijkstra are graph search; RRT is sampling-based. All three
-find a path, but their strategies and exploration patterns differ.
+Renders four plots showing how each algorithm explored the space:
+  - A* and Dijkstra: graph search, differ only in heuristic
+  - RRT: sampling-based tree, greedy parent selection
+  - RRT*: sampling-based tree, optimal parent + rewiring
+
+On this 4-connected grid all four find a 27-step path (grid geometry
+bounds them). The exploration patterns and tree topologies differ.
 
 Usage:
     python examples/run_comparison_demo.py
@@ -18,11 +22,11 @@ import numpy as np
 
 from src.astar import astar, dijkstra
 from src.grid_world import make_wall_world
-from src.rrt import rrt
+from src.rrt import rrt, rrt_star
 
 
 def render_search_result(ax, world, result, title: str, tree_edges=None) -> None:
-    """Render one planner's result. tree_edges is only used for RRT."""
+    """Render one planner's result. tree_edges is only used for RRT/RRT*."""
     grid = np.zeros((world.rows, world.cols), dtype=int)
     for r, c in world.obstacles:
         grid[r, c] = 1
@@ -33,7 +37,6 @@ def render_search_result(ax, world, result, title: str, tree_edges=None) -> None
     cmap = plt.matplotlib.colors.ListedColormap(["white", "black", "#a8d8ea"])
     ax.imshow(grid, cmap=cmap, origin="upper", vmin=0, vmax=2)
 
-    # RRT tree edges (thin gray lines) if provided
     if tree_edges:
         for parent, child in tree_edges:
             ax.plot([parent[1], child[1]], [parent[0], child[0]],
@@ -63,6 +66,7 @@ def main() -> None:
     astar_result = astar(world)
     dijkstra_result = dijkstra(world)
     rrt_result = rrt(world, seed=42)
+    rrt_star_result = rrt_star(world, seed=42, max_iterations=1000)
 
     print(f"A*:       path length {astar_result.path_length}, "
           f"explored {len(astar_result.explored)} cells")
@@ -71,21 +75,29 @@ def main() -> None:
     print(f"RRT:      path length {rrt_result.path_length}, "
           f"nodes {len(rrt_result.explored)}, "
           f"iterations {rrt_result.iterations_used}")
+    print(f"RRT*:     path length {rrt_star_result.path_length}, "
+          f"nodes {len(rrt_star_result.explored)}, "
+          f"iterations {rrt_star_result.iterations_used}")
 
-    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(21, 6))
-    render_search_result(ax1, world, astar_result,
+    fig, axes = plt.subplots(1, 4, figsize=(28, 6))
+    render_search_result(axes[0], world, astar_result,
                          f"A* (Manhattan)\npath: {astar_result.path_length}   "
                          f"explored: {len(astar_result.explored)}")
-    render_search_result(ax2, world, dijkstra_result,
+    render_search_result(axes[1], world, dijkstra_result,
                          f"Dijkstra\npath: {dijkstra_result.path_length}   "
                          f"explored: {len(dijkstra_result.explored)}")
-    render_search_result(ax3, world, rrt_result,
+    render_search_result(axes[2], world, rrt_result,
                          f"RRT (seed=42)\npath: {rrt_result.path_length}   "
                          f"nodes: {len(rrt_result.explored)}   "
                          f"iter: {rrt_result.iterations_used}",
                          tree_edges=rrt_result.tree_edges)
+    render_search_result(axes[3], world, rrt_star_result,
+                         f"RRT* (seed=42, 1000 iter)\n"
+                         f"path: {rrt_star_result.path_length}   "
+                         f"nodes: {len(rrt_star_result.explored)}",
+                         tree_edges=rrt_star_result.tree_edges)
 
-    plt.suptitle("A* vs Dijkstra vs RRT on the same world",
+    plt.suptitle("A* vs Dijkstra vs RRT vs RRT* on the same world",
                  fontsize=14, y=1.02)
     plt.tight_layout()
     plt.show()
