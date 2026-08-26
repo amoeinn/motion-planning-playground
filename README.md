@@ -2,9 +2,15 @@
 
 Interactive visualizations of 2D motion planning algorithms. Explore how A*, Dijkstra, RRT, and RRT* solve grid-world problems with obstacles, and compare their performance quantitatively.
 
-![A* vs Dijkstra comparison](docs/comparison.png)
+![A* vs Dijkstra vs RRT vs RRT* comparison](docs/comparison.png)
 
 All four planners find a 27-step path around the wall, which is optimal for a 4-connected grid with unit-cost moves. A* explores 157 cells using its heuristic to focus toward the goal. Dijkstra explores 249 with no heuristic. RRT stops at 111 nodes once it first reaches the goal. RRT* runs the full 1000 iterations and rewires as it goes, producing a denser tree and a visibly straighter route; its asymptotic optimality shows up as path smoothness here rather than shorter length, since grid geometry already bounds all four at 27.
+
+### Watching the search
+
+![A* search animation](docs/astar_search.gif)
+
+A* expands cells in order of estimated total cost, so the explored region grows toward the goal rather than uniformly outward. Once the goal is popped, the path is reconstructed by following parent pointers backward from the goal to the start, which is the direction the trace runs.
 
 ## Algorithms
 
@@ -51,10 +57,20 @@ Run RRT* alone on the wall world:
 python examples/run_rrt_star_demo.py
 ```
 
-Regenerate the README image:
+Animate a search, replaying it step by step:
+
+```bash
+python examples/run_animation_demo.py            # A* (default)
+python examples/run_animation_demo.py dijkstra
+python examples/run_animation_demo.py rrt
+python examples/run_animation_demo.py rrt_star
+```
+
+Regenerate the README image and animation:
 
 ```bash
 python examples/generate_readme_image.py
+python examples/generate_readme_animation.py
 ```
 
 ## Structure
@@ -65,10 +81,13 @@ src/
   astar.py            A* and Dijkstra implementations
   rrt.py              RRT and RRT* implementations
   visualize.py        matplotlib rendering
+  animate.py          animated replay of a search
 examples/
   run_astar_demo.py             A* on the wall world
   run_rrt_demo.py               RRT on the wall world
   run_rrt_star_demo.py          RRT* on the wall world
   run_comparison_demo.py        all four planners side by side
+  run_animation_demo.py         animated replay, planner as argument
   generate_readme_image.py      docs image generator
+  generate_readme_animation.py  docs animation generator
 ```
