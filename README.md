@@ -73,6 +73,15 @@ python examples/generate_readme_image.py
 python examples/generate_readme_animation.py
 ```
 
+## Tests
+
+```bash
+pip install -r requirements-dev.txt
+pytest tests/ -v
+```
+
+The suite checks the properties that would be real bugs if violated: A* and Dijkstra return the optimal 27-step path, A* explores fewer cells than Dijkstra, every returned path moves one free cell at a time, seeded runs are reproducible, and all four planners report failure rather than hanging when the goal is walled off.
+
 ## Structure
 
 ```text
@@ -90,4 +99,6 @@ examples/
   run_animation_demo.py         animated replay, planner as argument
   generate_readme_image.py      docs image generator
   generate_readme_animation.py  docs animation generator
+tests/
+  test_planners.py              grid world and planner tests
 ```

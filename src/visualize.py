@@ -67,7 +67,7 @@ def plot_result(
     # Title with stats
     stats = f"path length: {result.path_length}   explored: {len(result.explored)}"
     ax.set_title(f"{title}\n{stats}")
-    ax.legend(loc="upper right", fontsize=9)
+    ax.legend(loc="upper right", fontsize=9, labelspacing=1.0, borderpad=0.8)
 
     plt.tight_layout()
 
@@ -138,7 +138,7 @@ def plot_rrt_result(
              f"nodes: {len(result.explored)}   "
              f"iterations: {result.iterations_used}")
     ax.set_title(f"{title}\n{stats}")
-    ax.legend(loc="upper right", fontsize=9)
+    ax.legend(loc="upper right", fontsize=9, labelspacing=1.0, borderpad=0.8)
 
     plt.tight_layout()
 
