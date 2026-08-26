@@ -1,7 +1,8 @@
 """Generate the comparison image embedded in the README.
 
-Runs A*, Dijkstra, and RRT on the wall world and saves the side-by-side
-plot to docs/comparison.png. No display window; intended for docs generation.
+Runs A*, Dijkstra, RRT, and RRT* on the wall world and saves the
+side-by-side plot to docs/comparison.png. No display window; intended
+for docs generation.
 
 Usage:
     python examples/generate_readme_image.py
@@ -19,11 +20,11 @@ import numpy as np
 
 from src.astar import astar, dijkstra
 from src.grid_world import make_wall_world
-from src.rrt import rrt
+from src.rrt import rrt, rrt_star
 
 
 def render_search_result(ax, world, result, title: str, tree_edges=None) -> None:
-    """Render one planner's result. tree_edges is only used for RRT."""
+    """Render one planner's result. tree_edges is only used for RRT/RRT*."""
     grid = np.zeros((world.rows, world.cols), dtype=int)
     for r, c in world.obstacles:
         grid[r, c] = 1
@@ -63,21 +64,27 @@ def main() -> None:
     astar_result = astar(world)
     dijkstra_result = dijkstra(world)
     rrt_result = rrt(world, seed=42)
+    rrt_star_result = rrt_star(world, seed=42, max_iterations=1000)
 
-    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(21, 6))
-    render_search_result(ax1, world, astar_result,
+    fig, axes = plt.subplots(1, 4, figsize=(28, 6))
+    render_search_result(axes[0], world, astar_result,
                          f"A* (Manhattan)\npath: {astar_result.path_length}   "
                          f"explored: {len(astar_result.explored)}")
-    render_search_result(ax2, world, dijkstra_result,
+    render_search_result(axes[1], world, dijkstra_result,
                          f"Dijkstra\npath: {dijkstra_result.path_length}   "
                          f"explored: {len(dijkstra_result.explored)}")
-    render_search_result(ax3, world, rrt_result,
+    render_search_result(axes[2], world, rrt_result,
                          f"RRT (seed=42)\npath: {rrt_result.path_length}   "
                          f"nodes: {len(rrt_result.explored)}   "
                          f"iter: {rrt_result.iterations_used}",
                          tree_edges=rrt_result.tree_edges)
+    render_search_result(axes[3], world, rrt_star_result,
+                         f"RRT* (seed=42, 1000 iter)\n"
+                         f"path: {rrt_star_result.path_length}   "
+                         f"nodes: {len(rrt_star_result.explored)}",
+                         tree_edges=rrt_star_result.tree_edges)
 
-    plt.suptitle("A* vs Dijkstra vs RRT on the same world",
+    plt.suptitle("A* vs Dijkstra vs RRT vs RRT* on the same world",
                  fontsize=14, y=1.02)
     plt.tight_layout()
 
