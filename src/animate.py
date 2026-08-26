@@ -58,6 +58,7 @@ def animate_search(
     result: AStarResult,
     title: str = "A* Search",
     steps_per_frame: int = 2,
+    path_draw_frames: int = 25,
     path_hold_frames: int = 20,
     fps: int = 20,
     show: bool = True,
@@ -65,20 +66,28 @@ def animate_search(
 ) -> None:
     """Replay a graph search (A* or Dijkstra) cell by cell.
 
+    The animation has three phases: the explored region grows in the order
+    cells were popped from the open set, then the path is traced backward
+    from goal to start the way _reconstruct_path walks its parent pointers,
+    then the finished path is held before the loop repeats.
+
     Args:
         world: the grid environment.
         result: the search result to replay.
         title: plot title.
         steps_per_frame: cells revealed per frame. Higher is faster and
             produces a smaller GIF.
-        path_hold_frames: extra frames held at the end showing the final path.
+        path_draw_frames: frames spent tracing the path back from the goal.
+        path_hold_frames: frames holding the completed path at the end.
         fps: frames per second when writing a GIF.
         show: open an interactive window.
         savepath: if given, write a GIF to this path.
     """
     history = result.frontier_history
+    path = result.path or []
     reveal_frames = max(1, -(-len(history) // steps_per_frame))  # ceiling division
-    total_frames = reveal_frames + path_hold_frames
+    draw_frames = path_draw_frames if path else 0
+    total_frames = reveal_frames + draw_frames + path_hold_frames
 
     fig, ax = plt.subplots(figsize=(world.cols * 0.5, world.rows * 0.5))
     image = ax.imshow(_base_grid(world), cmap=CMAP, origin="upper", vmin=0, vmax=2)
@@ -86,6 +95,7 @@ def animate_search(
     _setup_axes(ax, world)
 
     def update(frame: int):
+        # Phase 1: reveal the explored region
         revealed = min(len(history), (frame + 1) * steps_per_frame)
         grid = _base_grid(world)
         for r, c in history[:revealed]:
@@ -93,15 +103,24 @@ def animate_search(
                 grid[r, c] = 2
         image.set_data(grid)
 
-        if frame >= reveal_frames - 1 and result.path:
-            path_line.set_data([c[1] for c in result.path],
-                               [c[0] for c in result.path])
-            ax.set_title(f"{title}\npath length: {result.path_length}   "
-                         f"explored: {len(result.explored)}")
-        else:
+        if frame < reveal_frames:
             path_line.set_data([], [])
             ax.set_title(f"{title}\nexplored: {revealed} of {len(history)}")
+            return image, path_line
 
+        # Phase 2: trace the path backward from the goal
+        if frame < reveal_frames + draw_frames:
+            progress = (frame - reveal_frames + 1) / draw_frames
+            drawn = max(2, int(round(len(path) * progress)))
+            segment = path[-drawn:]  # grows backward from the goal
+            path_line.set_data([c[1] for c in segment], [c[0] for c in segment])
+            ax.set_title(f"{title}\ntracing path back from goal")
+            return image, path_line
+
+        # Phase 3: hold the completed path
+        path_line.set_data([c[1] for c in path], [c[0] for c in path])
+        ax.set_title(f"{title}\npath length: {result.path_length}   "
+                     f"explored: {len(result.explored)}")
         return image, path_line
 
     anim = animation.FuncAnimation(
