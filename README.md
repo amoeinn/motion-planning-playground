@@ -102,3 +102,7 @@ examples/
 tests/
   test_planners.py              grid world and planner tests
 ```
+
+## License
+
+MIT, see [LICENSE](LICENSE).
